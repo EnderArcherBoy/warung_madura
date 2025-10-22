@@ -7,6 +7,9 @@
     <title>Test</title>
 </head>
 <body>
-    Test
+    <h1>Test</h1>
+    <p>my</p>
+    <img src="images/test.png" alt="My Image" width="250px">
+    <a href="/">Go Back</a>
 </body>
 </html>
