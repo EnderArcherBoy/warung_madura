@@ -89,7 +89,7 @@
                                 </span>
                             </span>
                             <span>
-                                Ini dari pull request gio
+                                Ini dari pull request rambolt
                                 <a href="https://music.youtube.com/watch?v=FzdscRP-uXc&list=PLl04Iy-yYmPpEwv2jsbYRlKVvYin2TWmt" target="_blank" class="inline-flex items-center space-x-1 font-medium underline underline-offset-4 text-[#f53003] dark:text-[#FF4433] ml-1">
                                     <span>music 25:00</span>
                                     <svg
