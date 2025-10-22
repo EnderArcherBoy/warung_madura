@@ -89,9 +89,9 @@
                                 </span>
                             </span>
                             <span>
-                                Ini dari mana?
-                                <a href="https://music.youtube.com/watch?v=FzdscRP-uXc&list=PLl04Iy-yYmPpEwv2jsbYRlKVvYin2TWmt" target="_blank" class="inline-flex items-center space-x-1 font-medium underline underline-offset-4 text-[#f53003] dark:text-[#FF4433] ml-1">
-                                    <span>nightcord at 25:00</span>
+                                Ini dari pull request
+                                <a href="https://google.com" target="_blank" class="inline-flex items-center space-x-1 font-medium underline underline-offset-4 text-[#f53003] dark:text-[#FF4433] ml-1">
+                                    <span>Laracasts</span>
                                     <svg
                                         width="10"
                                         height="11"
