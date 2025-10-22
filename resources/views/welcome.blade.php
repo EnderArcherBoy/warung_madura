@@ -145,7 +145,7 @@
                         </li>
                     </ul>
                 </div>
-                <div class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ml-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg aspect-[335/376] lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden">
+                <div class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ml-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg aspect-335/376 lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden">
                   
                     {{-- my --}}
                     <img src="{{ asset('images/test.png') }}" alt="my......sql" class="absolute top-1/2 left-1/2 w-[162px] h-[48px] lg:w-[218px] lg:h-[65px] -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none" />
