@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="apple-touch-icon" sizes="76x76" href="{{ asset('layout/assets/img/apple-icon.png') }}">
     <link rel="icon" type="image/png" href="https://img1.picmix.com/output/stamp/normal/1/6/0/4/2544061_df45b.png">
     <title>
@@ -334,6 +335,8 @@
             Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
         }
     </script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Control Center for Soft Dashboard: parallax effects, scripts for the example pages etc -->
     <script src="{{ asset('layout/assets/js/soft-ui-dashboard.min.js?v=1.0.7') }}"></script>
 

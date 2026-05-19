@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\Distributor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class PurchaseController extends Controller
@@ -154,10 +156,151 @@ class PurchaseController extends Controller
     }
 
     /**
+     * Show the form for editing an existing purchase order.
+     */
+    public function edit(string $id)
+    {
+        // Only owner and admin can edit purchases
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Find by note_number instead of id
+        $purchase = Purchase::where('note_number', $id)
+                           ->with(['purchaseDetails.product', 'distributor'])
+                           ->firstOrFail();
+
+        // Get all distributors and products for dropdowns
+        $distributors = Distributor::orderBy('name')->get();
+        $products = Product::orderBy('name')->get();
+
+        $productsList = $products->map(function($p) {
+            return [
+                'serial' => $p->serial_number,
+                'name'   => $p->name,
+                'price'  => $p->price,
+                'stock'  => $p->stock
+            ];
+        })->toArray();
+
+        return view('purchases.edit', [
+            'title'        => 'Purchases',
+            'purchase'     => $purchase,
+            'distributors' => $distributors,
+            'productsList' => $productsList,
+        ]);
+    }
+
+    /**
+     * Update an existing purchase order and recalculate stock.
+     * Reverts old stock and applies new stock based on updated quantities.
+     */
+    public function update(Request $request, string $id)
+    {
+        // Only owner and admin can update purchases
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Find by note_number instead of id
+        $purchase = Purchase::where('note_number', $id)
+                           ->with('purchaseDetails')
+                           ->firstOrFail();
+
+        // Validate request data
+        $request->validate([
+            'purchase_date'       => 'required|date',
+            'distributor_id'      => 'required|integer|exists:distributors,id',
+            'product_serial'      => 'required|array|min:1',
+            'product_serial.*'    => 'required|string|exists:products,serial_number',
+            'purchase_price'      => 'required|array|min:1',
+            'purchase_price.*'    => 'required|integer|min:1',
+            'selling_margin'      => 'required|array|min:1',
+            'selling_margin.*'    => 'required|integer|min:0',
+            'purchase_amount'     => 'required|array|min:1',
+            'purchase_amount.*'   => 'required|integer|min:1',
+        ], [
+            'product_serial.required' => 'You must add at least one product to the purchase.',
+            'product_serial.*.exists' => 'Selected product is invalid.',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // Step 1: Revert old stock - subtract all old purchase quantities from products
+            foreach ($purchase->purchaseDetails as $oldDetail) {
+                if ($oldDetail->product) {
+                    $oldDetail->product->decrement('stock', $oldDetail->purchase_amount);
+                }
+            }
+
+            // Step 2: Delete old purchase details
+            $purchase->purchaseDetails()->delete();
+
+            // Step 3: Update purchase header
+            $purchase->update([
+                'purchase_date' => $request->purchase_date,
+                'distributor_id' => $request->distributor_id,
+                'total_price' => 0, // Will be recalculated
+            ]);
+
+            $grandTotal = 0;
+
+            // Step 4: Create new purchase details and add new stock
+            foreach ($request->product_serial as $index => $serial) {
+                $purchasePrice = $request->purchase_price[$index];
+                $sellingMargin = $request->selling_margin[$index];
+                $quantity = $request->purchase_amount[$index];
+
+                // Fetch the product
+                $product = Product::where('serial_number', $serial)->firstOrFail();
+
+                // Calculate selling price from purchase price + margin
+                $sellingPrice = $purchasePrice + $sellingMargin;
+                $subtotal = $purchasePrice * $quantity;
+                $grandTotal += $subtotal;
+
+                // Create new Purchase Detail line item
+                PurchaseDetail::create([
+                    'note_number_purchase'   => $purchase->note_number,
+                    'serial_number_product'  => $product->serial_number,
+                    'purchase_price'         => $purchasePrice,
+                    'selling_margin'         => $sellingMargin,
+                    'purchase_amount'        => $quantity,
+                    'subtotal'               => $subtotal,
+                ]);
+
+                // Increment the product's stock (adding new quantities)
+                $product->increment('stock', $quantity);
+
+                // Update product price with selling price
+                $product->update(['price' => $sellingPrice]);
+            }
+
+            // Step 5: Update purchase total
+            $purchase->update(['total_price' => $grandTotal]);
+
+            DB::commit();
+
+            return redirect()->route('purchases.show', ['purchase' => $purchase->note_number])
+                           ->with('success', 'Purchase order #' . $purchase->note_number . ' updated successfully!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Failed to update purchase: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Remove a purchase order and restore stock to products.
      */
     public function destroy(string $id)
     {
+        // Only owner and admin can delete purchases
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $purchase = Purchase::where('note_number', $id)->firstOrFail();
 
         DB::beginTransaction();
@@ -198,5 +341,20 @@ class PurchaseController extends Controller
                         ->count();
 
         return $prefix . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Verify the current user's password via AJAX.
+     * Used by SweetAlert2 modals for password confirmation before edit/delete.
+     */
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $verified = Hash::check($request->password, Auth::user()->password);
+
+        return response()->json(['verified' => $verified]);
     }
 }

@@ -49,7 +49,10 @@
                     <p class="text-sm text-secondary mb-0">{{ $purchase->note_number }}</p>
                 </div>
                 <div>
-                    <a href="{{ route('purchases.index') }}" class="btn btn-sm btn-outline-secondary me-2 mb-0">Back to Purchases</a>
+                    <a href="{{ route('purchases.edit', $purchase->note_number) }}" class="btn btn-sm btn-outline-warning me-2 mb-0">
+                        <i class="fas fa-edit me-1"></i> Edit
+                    </a>
+                    <a href="{{ route('purchases.index') }}" class="btn btn-sm btn-outline-secondary mb-0">Back to Purchases</a>
                 </div>
             </div>
 

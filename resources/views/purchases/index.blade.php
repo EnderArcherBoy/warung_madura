@@ -129,24 +129,32 @@
                                 <td class="align-middle text-center">
                                     <span class="text-secondary text-xs font-weight-bold">Rp {{ number_format($purchase->total_price, 0, ',', '.') }}</span>
                                 </td>
-                                <td class="align-middle" style="width: 250px;">
+                                <td class="align-middle" style="width: 300px;">
                                     <div class="d-flex justify-content-end px-3">
                                         <a href="{{ route('purchases.show', $purchase->note_number) }}" class="btn btn-sm btn-outline-info me-2 mb-0" data-toggle="tooltip" data-original-title="View Details">
                                             View
                                         </a>
+                                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-warning me-2 mb-0 btn-edit"
+                                            data-note="{{ $purchase->note_number }}"
+                                            data-edit-url="{{ route('purchases.edit', $purchase->note_number) }}">
+                                            Edit
+                                        </button>
                                         <form action="{{ route('purchases.destroy', $purchase->note_number) }}" method="POST" class="d-inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="button" class="btn btn-sm btn-outline-danger mb-0 btn-delete">
+                                            <button type="button" class="btn btn-sm btn-outline-danger mb-0 btn-delete" data-note="{{ $purchase->note_number }}">
                                                 Delete
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">
+                                <td colspan="6" class="text-center py-4">
                                     <p class="text-secondary text-sm">No purchase orders found. <a href="{{ route('purchases.create') }}">Create one now</a></p>
                                 </td>
                             </tr>
@@ -164,14 +172,145 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
-    // Simple delete confirmation
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            if (confirm('Are you sure you want to delete this purchase?')) {
-                e.target.closest('form').submit();
+document.addEventListener('DOMContentLoaded', function() {
+    const VERIFY_URL = "{{ route('purchases.verify-password') }}";
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    /**
+     * Show password confirmation modal.
+     * Returns a promise that resolves to true if password is correct, false otherwise.
+     */
+    function askPassword(actionLabel) {
+        return Swal.fire({
+            title: 'Password Required',
+            html: `
+                <p class="text-sm text-muted mb-3">Enter your account password to confirm <strong>${actionLabel}</strong>.</p>
+                <input type="password" id="swal-password" class="swal2-input" placeholder="Your password" autocomplete="current-password">
+            `,
+            icon: null,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check me-1"></i> Confirm',
+            cancelButtonText: '<i class="fas fa-times me-1"></i> Cancel',
+            confirmButtonColor: '#82d616',
+            cancelButtonColor: '#8392ab',
+            focusConfirm: false,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'shadow-lg border-radius-xl',
+            },
+            preConfirm: () => {
+                const password = document.getElementById('swal-password').value;
+                if (!password) {
+                    Swal.showValidationMessage('Please enter your password');
+                    return false;
+                }
+                return fetch(VERIFY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.verified) {
+                        Swal.showValidationMessage('Incorrect password. Please try again.');
+                        return false;
+                    }
+                    return true;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage('Error verifying password. Please try again.');
+                    return false;
+                });
             }
+        }).then(result => {
+            return result.isConfirmed && result.value === true;
+        });
+    }
+
+    // ========== EDIT BUTTON FLOW ==========
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const noteNumber = this.dataset.note;
+            const editUrl = this.dataset.editUrl;
+
+            // Step 1: Password confirmation first
+            askPassword('editing purchase #' + noteNumber).then(verified => {
+                if (verified) {
+                    // Step 2: Confirm action
+                    Swal.fire({
+                        title: 'Edit Purchase?',
+                        html: `<p>Do you want to edit purchase <strong>#${noteNumber}</strong>?</p>`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-edit me-1"></i> Yes, Edit',
+                        cancelButtonText: '<i class="fas fa-times me-1"></i> Cancel',
+                        confirmButtonColor: '#fbcf33',
+                        cancelButtonColor: '#8392ab',
+                        customClass: {
+                            popup: 'shadow-lg border-radius-xl',
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            // Redirect to edit page
+                            window.location.href = editUrl;
+                        }
+                    });
+                }
+            });
         });
     });
+
+    // ========== DELETE BUTTON FLOW ==========
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const noteNumber = this.dataset.note;
+            const form = this.closest('form');
+
+            // Step 1: Password confirmation first
+            askPassword('deleting purchase #' + noteNumber).then(verified => {
+                if (verified) {
+                    // Step 2: Confirm action
+                    Swal.fire({
+                        title: 'Delete Purchase?',
+                        html: `<p>Do you want to delete purchase <strong>#${noteNumber}</strong>?<br><small class="text-danger">This action cannot be undone. Stock will be restored.</small></p>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-trash me-1"></i> Yes, Delete',
+                        cancelButtonText: '<i class="fas fa-times me-1"></i> Cancel',
+                        confirmButtonColor: '#ea0606',
+                        cancelButtonColor: '#8392ab',
+                        customClass: {
+                            popup: 'shadow-lg border-radius-xl',
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            // Step 3: Show success and submit
+                            Swal.fire({
+                                title: 'Purchase Deleted!',
+                                html: `<p>Purchase <strong>#${noteNumber}</strong> has been deleted successfully.</p>`,
+                                icon: 'success',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#82d616',
+                                allowOutsideClick: false,
+                                customClass: {
+                                    popup: 'shadow-lg border-radius-xl',
+                                }
+                            }).then(() => {
+                                form.submit();
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+});
 </script>
+@endpush
 @endsection

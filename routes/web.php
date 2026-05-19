@@ -48,8 +48,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('/couriers', CourierController::class);
     Route::resource('/users', UserController::class);
 
-    // Purchase (read-only, for supplier / inventory management)
-    Route::resource('purchases', PurchaseController::class, ['except' => ['edit', 'update']]);
+    // Purchase password verification (AJAX) for edit/delete confirmation
+    Route::post('purchases/verify-password', [PurchaseController::class, 'verifyPassword'])->name('purchases.verify-password');
+
+    // Purchase (CRUD, for supplier / inventory management)
+    Route::resource('purchases', PurchaseController::class);
 
     // Sale CRUD (for cashier / transaction entry)
     Route::resource('sales', SaleController::class);
