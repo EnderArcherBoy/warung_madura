@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return Swal.fire({
             title: 'Password Required',
             html: `
-                <p class="text-sm text-muted mb-3">Enter your account password to confirm <strong>${actionLabel}</strong>.</p>
+                <p class="text-sm text-muted mb-3">Enter your BOSS password to continue <strong>${actionLabel}</strong></p>
                 <input type="password" id="swal-password" class="swal2-input" placeholder="Your password" autocomplete="current-password">
             `,
             icon: null,

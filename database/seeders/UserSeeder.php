@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
         User::create([
             'name'                 => 'Pak Haji Owner',
             'email'                => 'owner@warungemadura.com',
-            'password'             => Hash::make('password123'),
+            'password'             => Hash::make('owner123'),
             'role'                 => 'owner',
             'phone_number'         => '081234567890',
             'address'              => 'Jl. Raya Madura No. 1, Sampang',
@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
         User::create([
             'name'                 => 'Ibu Siti Admin',
             'email'                => 'admin1@warungemadura.com',
-            'password'             => Hash::make('password123'),
+            'password'             => Hash::make('admin123'),
             'role'                 => 'admin',
             'phone_number'         => '082134567890',
             'address'              => 'Jl. Pangkalan Bun, Sampang',
@@ -41,7 +41,7 @@ class UserSeeder extends Seeder
         User::create([
             'name'                 => 'Pak Darmawan Admin',
             'email'                => 'admin2@warungemadura.com',
-            'password'             => Hash::make('password123'),
+            'password'             => Hash::make('admin123'),
             'role'                 => 'admin',
             'phone_number'         => '083134567890',
             'address'              => 'Jl. Garuda No. 5, Sampang',

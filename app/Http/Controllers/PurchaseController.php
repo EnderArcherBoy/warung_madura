@@ -6,6 +6,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseDetail;
 use App\Models\Product;
 use App\Models\Distributor;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -19,6 +20,9 @@ class PurchaseController extends Controller
      */
     public function index()
     {
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
         // Eager load purchaseDetails and distributor to prevent N+1 queries
         $purchases = Purchase::with(['purchaseDetails', 'distributor'])
                              ->latest('purchase_date')
@@ -35,6 +39,9 @@ class PurchaseController extends Controller
      */
     public function create()
     {
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
         // Get all distributors and products for dropdowns
         $distributors = Distributor::orderBy('name')->get();
         $products = Product::orderBy('name')->get();
@@ -61,6 +68,9 @@ class PurchaseController extends Controller
      */
     public function store(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
         // validasi data
         $request->validate([
             'purchase_date'       => 'required|date',
@@ -144,6 +154,9 @@ class PurchaseController extends Controller
      */
     public function show(string $id)
     {
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
         // Find by note_number instead of id
         $purchase = Purchase::where('note_number', $id)
                            ->with(['purchaseDetails.product', 'distributor'])
@@ -344,8 +357,9 @@ class PurchaseController extends Controller
     }
 
     /**
-     * Verify the current user's password via AJAX.
+     * Verify the Owner's password via AJAX.
      * Used by SweetAlert2 modals for password confirmation before edit/delete.
+     * Checks against the first active Owner account, regardless of who is logged in.
      */
     public function verifyPassword(Request $request)
     {
@@ -353,7 +367,18 @@ class PurchaseController extends Controller
             'password' => 'required|string',
         ]);
 
-        $verified = Hash::check($request->password, Auth::user()->password);
+        // Get the first active owner
+        $owner = User::where('role', 'owner')->where('is_active', true)->first();
+
+        if (!$owner) {
+            return response()->json([
+                'verified' => false,
+                'message' => 'No active owner account found.'
+            ]);
+        }
+
+        // Check password against owner's password
+        $verified = Hash::check($request->password, $owner->password);
 
         return response()->json(['verified' => $verified]);
     }

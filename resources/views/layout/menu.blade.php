@@ -17,7 +17,7 @@
         </li>
 
         {{-- Products - hidden from courier --}}
-        @if(auth()->user()->role == 'owner')
+        @if(auth()->user()->role == 'owner' || auth()->user()->role == 'admin')
         <li class="nav-item">
             <a class="nav-link @if ($title === 'Products') active @endif" href="{{ route('products.index') }}">
                 <div
@@ -105,7 +105,7 @@
                 <span class="nav-link-text ms-1">Sale</span>
             </a>
         </li>
-        @if(auth()->user()->role == 'owner')
+        @if(auth()->user()->role == 'owner' || auth()->user()->role == 'admin')
         <li class="nav-item">
             <a class="nav-link @if ($title === 'Distributors') active @endif" href="{{route('distributors.index') }}">
                 <div
@@ -133,7 +133,7 @@
                 <span class="nav-link-text ms-1">Couriers</span>
             </a>
         </li>
-        @if(auth()->user()->role == 'owner')
+        @if(auth()->user()->role == 'owner' || auth()->user()->role == 'admin')
         <li class="nav-item">
             <a class="nav-link @if ($title === 'Users' || str_contains($title, 'User')) active @endif" href="{{ route('users.index') }}">
                 <div
