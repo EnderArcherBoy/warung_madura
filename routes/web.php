@@ -4,19 +4,62 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DistributorController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\CourierController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleReportController;
 
-Route::get('/', function () {
-    return view('welcome');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+| Route::resource() registers 7 RESTful routes at once:
+|   GET    /products           → index()    (list all)
+|   GET    /products/create    → create()   (show create form)
+|   POST   /products           → store()    (save new record)
+|   GET    /products/{id}      → show()     (view one record)
+|   GET    /products/{id}/edit → edit()     (show edit form)
+|   PUT    /products/{id}      → update()   (save changes)
+|   DELETE /products/{id}      → destroy()  (delete record)
+|
+| All routes are automatically NAMED: products.index, products.create, etc.
+| Use route('products.index') in Blade or controllers to generate URLs.
+| This way, if you change /products to /barang, all links update automatically.
+*/
+
+// Authentication Routes
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
+Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register')->middleware('guest');
+Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Protected Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/', function () {
+        return view('welcome');
+    })->name('home');
+
+    Route::resource('/dashboard', DashboardController::class);
+    Route::resource('/distributors', DistributorController::class);
+    Route::resource('/couriers', CourierController::class);
+    Route::resource('/users', UserController::class);
+
+    // Purchase password verification (AJAX) for edit/delete confirmation
+    Route::post('purchases/verify-password', [PurchaseController::class, 'verifyPassword'])->name('purchases.verify-password');
+
+    // Purchase (CRUD, for supplier / inventory management)
+    Route::resource('purchases', PurchaseController::class);
+
+    // Sale CRUD (for cashier / transaction entry)
+    Route::resource('sales', SaleController::class);
+
+    // Sale Reports (for manager / analytical view)
+    Route::get('sale-reports', [SaleReportController::class, 'index'])->name('sale-reports.index');
+
+    Route::resource('products', ProductController::class);
+    Route::get('/test', [TestController::class, 'index']);
 });
-
-// Route::get('/test', function () {
-//     return view('test');
-// });
-
-// Route::get('/dashboard', function () {
-//     return view('dashboard');
-// });
-
-Route::resource('/dashboard', DashboardController::class);
-Route::resource('/distributors', DistributorController::class);
-Route::get('/test', [TestController::class, 'index']);
